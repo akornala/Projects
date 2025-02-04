@@ -1,0 +1,704 @@
+---
+title: "BA Group - 6  Zillow's Zestimate home valuation"
+author: "Pranay, Hari, Akhil, Venkateswara Rao"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(digits = 4)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+```{r}
+# importing the Necessary libraries
+library(dplyr)
+```
+
+
+```{r}
+#Extracting the current working directory
+getwd()
+```
+
+
+
+```{r}
+#Loading House_Prices csv data Import the data set into R
+House_Prices <- read.csv("data/House_Prices.csv", header = TRUE, sep = ",", stringsAsFactors = TRUE)
+```
+**Data Over View - Descriptive Analysis**
+
+**Data Overview, Providing summary of the data set, including the number of observations and variables, the data types and ranges for each variable**
+
+```{r}
+#Observing the first 10 Observations
+head(House_Prices, n=10L)
+
+#Shape of the data set
+dim(House_Prices)
+
+#Printing the Structure of the data
+str(House_Prices)
+
+#Summary of the House Prices dataset
+summary(House_Prices)
+
+library(skimr)
+skim(House_Prices)
+
+#Loading the data Explorer Library
+library(DataExplorer)
+## Plot basic description for House_Prices data
+## View basic description for House_Prices data
+introduce(House_Prices)
+
+#Checking for the missing values in the House Prices 
+missing_counts = colSums(is.na(House_Prices)) 
+
+print(missing_counts)
+
+#Plotting the percentage of missing values
+plot_intro(House_Prices)
+
+# Create a bar plot to visualize the missing values
+barplot(missing_counts, main = "Null Values", xlab = "Variables", ylab = "Count")
+
+# Printing the Variable types
+variable_types <- sapply(House_Prices, class)
+print(variable_types)
+
+
+```
+**Based on the above observation all the data types are integers and there are no categorical variables in our data**
+
+```{r}
+#Descriptive Analysis of the Numeric Variables
+numeric_vars <- c("LotArea", "OverallQual", "BsmtFinSF1", "FullBath", "HalfBath", "BedroomAbvGr", "TotRmsAbvGrd", "Fireplaces", "GarageArea", "SalePrice")
+
+# Set the layout for the plot grid
+par(mfrow = c(2, 3))
+
+# Create box plots for each numerical variable
+for (var in numeric_vars) {
+
+  boxplot(House_Prices[[var]], main = paste("Box Plot : ", var))
+  
+}
+
+```
+
+```{r}
+# Create histogram plots for each numerical variable
+par(mfrow = c(2, 3)) 
+# Set the layout for the plot grid 
+for (var in numeric_vars)
+  {
+hist(House_Prices[[var]], main = paste("Histogram Plot : ", var), xlab = var)
+} 
+```
+
+
+
+```{r}
+library(corrplot)
+
+# Create a correlation matrix
+correlation_matrix <- cor(House_Prices)
+
+# Specify custom colors
+color_scheme <- colorRampPalette(c("blue", "white", "red"))(20)
+
+
+
+# Plot a heatmap of the correlation matrix with custom color and title
+corrplot(correlation_matrix,
+         method = "color",            # Use color to represent correlation values
+         col = color_scheme,          # Specify custom color scheme
+         title = "House Prices Correlation Heatmap",  # Specify custom title
+         tl.cex = 0.8,                # Adjust text size for column and row names
+         mar = c(2, 2, 1, 1)          # Adjust margins (bottom, top, left, right)
+)
+
+
+# Compute correlation matrix
+print(correlation_matrix)
+
+```
+
+```{r}
+# Specify custom colors
+color_scheme <- colorRampPalette(c("blue", "white", "red"))(20)
+
+# Plot a heat map of the correlation matrix with custom color, title, and coefficients
+corrplot(correlation_matrix,
+         method = "color",            # Use color to represent correlation values
+         type = "upper",              # Display only the upper triangle of the matrix
+         tl.col = "black",            # Color of text for column and row names
+         tl.srt = 45,                  # Rotation angle of text
+         tl.cex = 0.8,                 # Text size for column and row names
+         tl.offset = 1,                # Offset of text from the heat map
+         addCoef.col = "black",        # Color of correlation coefficients
+         number.cex = 0.7,             # Text size for correlation coefficients
+         number.digits = 2,            # Number of digits for correlation coefficients
+         diag = FALSE,                 # Exclude diagonal elements
+         outline = TRUE                # Display outline around each cell
+)
+
+```
+
+**The correlation matrix provides information about the relationships between different variables in your dataset. In the provided matrix, the values range from -1 to 1, where +1 indicates a perfect positive correlation,-1 indicates a perfect negative correlation, and 0 indicates no correlation.**. 
+**The correlation matrix provides insights into the relationships between various features and the response variable, SalePrice. Notably, OverallQual exhibits a strong positive correlation of 0.79621 with SalePrice, indicating a significant influence on the home's sale value. GarageArea (correlation of 0.65604) and TotRmsAbvGrd (correlation of 0.57736) also show notable positive correlations, suggesting their impact on the sale price. These high-correlation relationships highlight the importance of these features in predicting home sale prices, emphasizing their relevance for effective analysis and model construction. **
+
+
+
+```{r}
+library(MASS)
+
+#Linear Model with All the Variables included - Full model with all predictor variables
+model <- lm(House_Prices$SalePrice ~ House_Prices$LotArea+House_Prices$OverallQual+House_Prices$YearBuilt+House_Prices$YearRemodAdd+House_Prices$BsmtFinSF1+House_Prices$FullBath+House_Prices$HalfBath+House_Prices$BedroomAbvGr+House_Prices$TotRmsAbvGrd+House_Prices$Fireplaces+House_Prices$GarageArea+House_Prices$YrSold) 
+
+summary(model)
+
+step_model <- stepAIC(model, direction = "both") # Stepwise regression with both forward and backward 
+
+# Print the summary of the final stepwise regression model
+summary(step_model)
+
+##Several predictor variables (e.g., LotArea, OverallQual, BsmtFinSF1, etc.) have significant coefficients.
+##The Multiple R-squared value suggests that the model explains a substantial proportion of the variance in the dependent variable.
+```
+
+```{r}
+# Fit the ANOVA model for all the variables
+model <- aov(House_Prices$SalePrice ~ House_Prices$LotArea+House_Prices$OverallQual+House_Prices$YearBuilt+House_Prices$YearRemodAdd+House_Prices$BsmtFinSF1+House_Prices$FullBath+House_Prices$HalfBath+House_Prices$BedroomAbvGr+House_Prices$TotRmsAbvGrd+House_Prices$Fireplaces+House_Prices$GarageArea+House_Prices$YrSold)
+# Perform ANOVA analysis
+anova_result <- anova(model)
+# View the ANOVA table
+print(anova_result)
+```
+**House_Prices - OverallQual**: The overall quality of the house is highly significant (p-value < 2e-16) and has a substantial effect on the sale price.  
+
+Other predictors like LotArea, BsmtFinSF1, FullBath, TotRmsAbvGrd, and GarageArea are also highly significant.  
+
+Year Built and YearRemodAdd are moderately significant predictors with p-values of 2.006e-11 and 5.864e-08, respectively.  
+
+
+```{r}
+#Evaluating the Test data set with all the features selected from the data set
+raw_data_test_all <- read.csv("data/Predict.csv")
+
+# Assuming 'model' is your trained linear regression model
+predictions_all <- predict(model, newdata = raw_data_test_all)
+
+# Assuming 'actual_values' is the column in 'test_data' containing the actual SalePrice values
+actual_values <- raw_data_test_all$SalePrice
+
+# Calculate evaluation metrics
+mse <- mean((predictions_all - actual_values)^2)
+rmse <- sqrt(mse)
+mae <- mean(abs(predictions_all - actual_values))
+r_squared <- 1 - (sum((actual_values - predictions_all)^2) / sum((actual_values - mean(actual_values))^2))
+
+cat("Mean Squared Error (MSE):", mse, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("R-squared:", r_squared, "\n")
+```
+
+**The large values for MSE, RMSE, and MAE suggest that the model's predictions have substantial errors, and there is a considerable difference between predicted and actual values. The negative R-squared is concerning and implies that the model is not explaining the variance in Sale Prices. This could be due to over fitting, model misspecification, or the presence of outlines**
+
+
+
+***End of the Analysis report : Now Let us consider construction of the model and before that we are converting the data for the years built,years modifie to Age of the Property and Age of Modifications also combining the bathrooms data in to a single column - Total Bathrooms and Also Normalizing the data set***
+
+```{r}
+## let construct the Regression model by considering the above assumptions
+# A) Build a regression and decision tree model that can accurately predict the price of a house based on several predictors (you select appropriate features) for predicting the data of the house prices we need to consider the Training data and then analyse the data
+
+#Loading the data sets
+setwd("/Users/kodeboyina/Documents/Kent State/Sem2/BA/Group Project")
+
+
+#Training Data set
+raw_data <- read.csv("data/House_Prices.csv")
+
+#From the above data set there are no missing values
+#LotArea: Lot size in square feet
+#BsmtFinSF1: Finished square feet
+#GarageArea: Size of garage in square feet
+#SalePrice: The sale price of the property.
+#Having the outliers and we are normalizing the data for Scale Consistency,Equal Weight for Features
+
+# Specify the variables to normalize
+variables_to_normalize <- c("LotArea", "BsmtFinSF1", "GarageArea")
+
+# Extract the selected variables
+data_to_normalize <- raw_data[, variables_to_normalize]
+
+# Calculate mean and standard deviation for normalization
+means <- colMeans(data_to_normalize)
+std_devs <- apply(data_to_normalize, 2, sd)
+
+# Z-score normalization
+normalized_data <- scale(data_to_normalize, center = means, scale = std_devs)
+
+# Add the normalized variables back to the original data
+raw_data[, variables_to_normalize] <- normalized_data
+
+```
+
+```{r}
+#Converting the baths information to Half and Full baths 
+raw_data$ConvertedHalfBath <- ifelse(raw_data$HalfBath == 0, 0,
+                                 ifelse(raw_data$HalfBath == 1, 0.5,
+                                        ifelse(raw_data$HalfBath == 2, 1, NA)))
+
+```
+
+```{r}
+# Calculate ages from the YrSold to find the property of the age
+raw_data$AgeBuilt <- raw_data$YrSold - raw_data$YearBuilt
+raw_data$AgeRemodAdd <- raw_data$YrSold - raw_data$YearRemodAdd
+raw_data$TotalBathrooms = raw_data$FullBath + raw_data$ConvertedHalfBath
+```
+
+```{r}
+library(corrplot)
+
+# Assuming 'raw_data' is your data frame
+House_num <- raw_data %>%
+  dplyr::select(LotArea, OverallQual, BsmtFinSF1, BedroomAbvGr, TotRmsAbvGrd, 
+         Fireplaces, GarageArea, SalePrice, AgeBuilt, AgeRemodAdd, TotalBathrooms)
+
+# Create a correlation matrix
+correlation_matrix <- cor(House_num)
+
+# Specify custom colors
+color_scheme <- colorRampPalette(c("blue", "white", "red"))(20)
+
+# Plot a heat map of the correlation matrix with custom color and title
+corrplot(correlation_matrix,
+         method = "color",            # Use color to represent correlation values
+         col = color_scheme,          # Specify custom color scheme
+         title = "House Prices Correlation Heatmap",  # Specify custom title
+         tl.cex = 0.8,                # Adjust text size for column and row names
+         mar = c(2, 2, 1, 1)          # Adjust margins (bottom, top, left, right)
+)
+
+# Compute correlation matrix
+print(correlation_matrix)
+```
+
+```{r}
+# Specify custom colors
+color_scheme <- colorRampPalette(c("blue", "white", "red"))(20)
+
+# Plot a heatmap of the correlation matrix with custom color, title, and coefficients
+corrplot(correlation_matrix,
+         method = "color",            # Use color to represent correlation values
+         type = "upper",              # Display only the upper triangle of the matrix
+         tl.col = "black",            # Color of text for column and row names
+         tl.srt = 45,                  # Rotation angle of text
+         tl.cex = 0.8,                 # Text size for column and row names
+         tl.offset = 1,                # Offset of text from the heatmap
+         addCoef.col = "black",        # Color of correlation coefficients
+         number.cex = 0.7,             # Text size for correlation coefficients
+         number.digits = 2,            # Number of digits for correlation coefficients
+         diag = FALSE,                 # Exclude diagonal elements
+         outline = TRUE                # Display outline around each cell
+)
+
+```
+**Strong Positive Correlations with SalePrice:**. 
+**OverallQual (0.796): This variable has the highest positive correlation with SalePrice. The overall quality of the house, as rated by a numeric scale, is a strong predictor of the sale price.**. 
+
+**Moderate Positive Correlations with SalePrice:**. 
+**GarageArea (0.656): The size of the garage has a moderate positive correlation with SalePrice.**. 
+**TotalBathrooms (0.605): The total number of bathrooms shows a moderate positive correlation with SalePrice.**. 
+**TotRmsAbvGrd (0.577): The total rooms above ground also has a moderate positive correlation with SalePrice.**. 
+**Fireplaces (0.469): The number of fireplaces in the house has a moderate positive correlation with SalePrice.**. 
+
+**Negative Correlations with SalePrice:**. 
+**AgeBuilt (-0.528): The age of the house (how many years it has been since it was built) has a moderate negative correlation with SalePrice.**. 
+**AgeRemodAdd (-0.525): The age since the last remodel also has a moderate negative correlation with SalePrice.**. 
+
+
+```{r}
+# Assuming 'data' is your data frame with independent variables
+# Load the 'car' package
+library(car)
+vif_model <- lm(SalePrice ~ OverallQual +BsmtFinSF1+ GarageArea + BedroomAbvGr + TotRmsAbvGrd + Fireplaces + AgeBuilt + AgeRemodAdd + TotalBathrooms, data = House_num)
+vif_values <- vif(vif_model)
+print(vif_values)
+
+```
+
+**Variance Inflation Factors (VIF) for different predictor variables in a linear regression model variance of an estimated regression coefficient increases if your predictors are correlated.**. 
+**Here we can see that VIF vales are less than 5 are considered acceptable, indicating a low to moderate level of multicollinearity**
+  
+```{r}
+#Using pairs to calculate multi-collinearity
+# Assuming 'House_num' is your data frame
+# Specify the columns you want to include in the pairs plot
+# Specify Columns to Plot
+columns_to_plot <- c("OverallQual", "BsmtFinSF1", "GarageArea", "BedroomAbvGr", "TotRmsAbvGrd",  "TotalBathrooms","Fireplaces", "AgeBuilt", "AgeRemodAdd")
+
+# Plot the Pairs
+pairs(House_num[, columns_to_plot])
+```
+**All the values have a  VIF values below 5 are often considered acceptable and there is no significant multi-collinearity in the data.  Here we can see that the there is linear relation ship between the Number of Bedrooms above the ground and Total Rooms above ground so in order to remove multi-collinearity we are removing the variable bedrooms above ground for better prediction over test data **
+
+```{r}
+# Create Regression Model with the 
+reg_model <- lm(SalePrice ~  OverallQual+BsmtFinSF1+GarageArea+TotRmsAbvGrd+TotalBathrooms+Fireplaces+AgeBuilt+AgeRemodAdd, data = House_num)
+
+summary(reg_model)
+
+```
+
+```{r}
+anova(reg_model)
+```
+**The coefficients for each variable have associated p-values (Pr(>|t|)). These p-values indicate whether each predictor variable is statistically significant in predicting the response variable. In this case, all predictor variables have very small p-values (<< 0.05), suggesting they are statistically significant . The F-statistic tests the overall significance of the model. The associated p-value (Pr(>F)) is extremely small (less than 2e-16), indicating that the model is statistically significant.**. 
+
+**Multiple R-squared (0.791) represents the proportion of variance in the response variable (Sale Price) that is explained by the predictor variables. Adjusted R-squared (0.8789) adjusts for the number of predictor variables**. 
+
+**The model seems to have a good fit (high R-squared value), and the individual predictor variables appear to be statistically significant in predicting Sale Price**. 
+
+
+**Post Analysis of the model**
+```{r}
+
+# Residual Analysis
+residuals <- residuals(reg_model)
+
+# Plot residuals vs. fitted values
+plot(reg_model$fitted.values, residuals, main="Residuals vs Fitted", xlab="Fitted values", ylab="Residuals")
+abline(h=0, col="red", lty=2)
+
+# Plot a histogram of residuals
+hist(residuals, main="Histogram of Residuals", xlab="Residuals")
+
+# Check for Normality of Residuals
+# Q-Q plot of standardized residuals
+qqnorm(residuals,col="red")
+qqline(residuals,col="red")
+```
+**The plot of residuals vs. fitted values does not exhibit any clear patterns, and the residuals appear to be randomly scattered around the horizontal axis. This suggests that the model is appropriately capturing the relationship between the predictors and the response variable.**. 
+**The Q-Q plot of standardized residuals shows that the points closely follow the diagonal line. This suggests that the residuals are approximately normally distributed, which is a positive indication for the normality assumption**. 
+**There are no clear trends, U-shapes, or other systematic patterns in the residuals. This further supports the idea that the model is capturing the underlying patterns in the data.**. 
+
+
+**Testing the data against the predict data and performing similar operations on the data**
+```{r}
+
+raw_data_test <- read.csv("data/Predict.csv")
+
+# Specify the variables to normalize
+variables_to_normalize_test <- c("LotArea", "BsmtFinSF1", "GarageArea")
+
+# Extract the selected variables
+data_to_normalize_test <- raw_data_test[, variables_to_normalize_test]
+
+# Calculate mean and standard deviation for normalization
+means <- colMeans(data_to_normalize_test)
+std_devs <- apply(data_to_normalize_test, 2, sd)
+
+# Z-score normalization
+normalized_data <- scale(data_to_normalize_test, center = means, scale = std_devs)
+
+# Add the normalized variables back to the original data
+raw_data_test[, variables_to_normalize_test] <- normalized_data
+
+```
+
+```{r}
+#Converting the baths information to Half and Full baths 
+raw_data_test$ConvertedHalfBath <- ifelse(raw_data_test$HalfBath == 0, 0,
+                                 ifelse(raw_data_test$HalfBath == 1, 0.5,
+                                        ifelse(raw_data_test$HalfBath == 2, 1, NA)))
+
+```
+
+```{r}
+# Calculate ages from the YrSold to find the properity of the age
+raw_data_test$AgeBuilt <- raw_data_test$YrSold - raw_data_test$YearBuilt
+raw_data_test$AgeRemodAdd <- raw_data_test$YrSold - raw_data_test$YearRemodAdd
+raw_data_test$TotalBathrooms = raw_data_test$FullBath + raw_data_test$ConvertedHalfBath
+
+
+```
+
+```{r}
+#test regression model
+predictions <- predict(reg_model, newdata = raw_data_test)
+
+# Assuming 'actual_values' is the column in 'test_data' containing the actual SalePrice values
+actual_values <- raw_data_test$SalePrice
+
+# Calculate evaluation metrics
+mse <- mean((predictions - actual_values)^2)
+rmse <- sqrt(mse)
+mae <- mean(abs(predictions - actual_values))
+r_squared <- 1 - (sum((actual_values - predictions)^2) / sum((actual_values - mean(actual_values))^2))
+
+cat("Mean Squared Error (MSE):", mse, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("R-squared:", r_squared, "\n")
+
+# Optionally, you can also visualize the predictions vs. actual values
+plot(predictions, actual_values, main="Predicted vs Actual", xlab="Predicted", ylab="Actual")
+abline(a = 0, b = 1, col = "red", lty = 2)  # Add a diagonal line for reference
+
+
+```
+**A comprehensive evaluation of our linear regression model for predicting Sales Prices using both quantitative metrics and visual examination. The model was trained on a dataset of 900 observations, and its performance was assessed on a separate test dataset of 90 observations.**. 
+
+**Evaluation Metrics: Mean Squared Error (MSE): The model achieved a Mean Squared Error of 8.4e+08 signifying the average squared difference between predicted and actual Sale Prices. Lower MSE values are indicative of better predictive accuracy.**. 
+
+**Root Mean Squared Error (RMSE): With an RMSE of 28,983, our model's predictions, on average, deviate by approximately $29,028 from the actual Sale Prices. A lower RMSE suggests improved accuracy.**. 
+
+**Mean Absolute Error (MAE): The Mean Absolute Error is 22,431, reflecting the average absolute difference between predicted and actual Sale Prices. This metric is useful for understanding the average magnitude of prediction errors.**. 
+
+**R-squared: The R-squared value of 0.7725 indicates that our model explains approximately 77.25% of the variance in Sale Prices. A higher R-squared suggests a better fit to the data.**. 
+
+**Predicted vs. Actual Values Plot: A visual inspection of the predicted vs. actual values plot further supports the model's effectiveness. The plot exhibits a clear linear relationship, indicating that the model's predictions align closely with the actual Sale Prices. The consistency in the alignment across the range of observations suggests that our linear regression model is capturing the underlying patterns in the data.**. 
+
+
+
+
+                                    Descision tree Model
+                                                                    
+```{r}
+#Decision Tree Model with out pruning the data
+library(rpart)
+# Build the decision tree model
+tree_model <- rpart(SalePrice ~  LotArea+OverallQual+BsmtFinSF1+TotRmsAbvGrd+Fireplaces+GarageArea+AgeRemodAdd, data = House_num, method = 'anova' )
+
+# Display the complexity parameter table
+printcp(tree_model)
+plotcp(tree_model)
+
+```
+**As we go down the table, CP decreases, indicating less complex trees. However, rel error and xerror also increase, meaning the predictions become less accurate.At nsplit = 7, the relative error decreases but the cross validation error increases indicates the point at which the data overfits**
+```{r}
+#Plotting the descision tree model
+library(rattle)
+fancyRpartPlot(tree_model)
+
+```
+```{r}
+
+# Build the decision tree model with pruning and a minimum split of 60 
+tree_model_pruned <- rpart(
+  SalePrice ~ LotArea + OverallQual + BsmtFinSF1 + TotRmsAbvGrd + Fireplaces + GarageArea + AgeRemodAdd, 
+  data = House_num, 
+  method = 'anova',
+  control = rpart.control(minsplit = 60, cp = 0.01) 
+)
+
+# Display the complexity parameter table for the pruned tree
+printcp(tree_model_pruned)
+plotcp(tree_model_pruned)
+```
+```{r}
+library(rattle)
+fancyRpartPlot(tree_model_pruned)
+```
+**Analysis before and after pruning the data**
+
+```{r}
+# Before Pruning
+predictions_before_pruning_test <- predict(tree_model, newdata = raw_data_test)
+mse_before_pruning_test <- mean((predictions_before_pruning_test - raw_data_test$SalePrice)^2)
+accuracy_before_pruning_test <- 1 - mse_before_pruning_test/var(raw_data_test$SalePrice)
+
+# After Pruning
+predictions_after_pruning_test <- predict(tree_model_pruned, newdata = raw_data_test)
+mse_after_pruning_test <- mean((predictions_after_pruning_test - raw_data_test$SalePrice)^2)
+accuracy_after_pruning_test <- 1 - mse_after_pruning_test/var(raw_data_test$SalePrice)
+
+# Display Results
+cat("Accuracy Before Pruning (Test Data):", round(accuracy_before_pruning_test * 100, 2), "%\n")
+cat("Accuracy After Pruning (Test Data):", round(accuracy_after_pruning_test * 100, 2), "%\n")
+```
+
+
+**Before pruning, your model achieved an accuracy of 65.65% on the test data. This is the performance of the model without any pruning, meaning the tree was allowed to grow without restrictions.**. 
+
+**After pruning, the model achieved an accuracy of 62.59% on the test data. Pruning involves removing branches from the tree to prevent overfitting. In this case, it seems that pruning led to a decrease in accuracy. While pruning can help prevent overfitting on the training data, it may result in a slightly less accurate model on the test data.**. 
+
+```{r}
+# Make predictions on the test data
+predictions <- predict(tree_model, newdata = raw_data_test, type = "vector")
+
+# Check the structure of predictions
+str(predictions)
+
+# Assuming your target variable is called 'target_variable'
+# Create a vector of predicted values
+predicted_values <- as.numeric(predictions)
+
+# Calculate evaluation metrics based on your specific task (e.g., Mean Absolute Error for regression)
+mae <- mean(abs(predicted_values - raw_data_test$SalePrice))
+
+# Print the evaluation metric
+cat("Mean Absolute Error (MAE):", mae, "\n")
+
+# Calculate the R-squared value manually
+actual_values <- raw_data_test$SalePrice
+residuals <- actual_values - predictions
+ss_total <- sum((actual_values - mean(actual_values))^2)
+ss_residual <- sum(residuals^2)
+r_squared <- 1 - (ss_residual / ss_total)
+
+# Print the R-squared value
+print(paste("R-squared value:", round(r_squared, 4)))
+
+# Calculate the adjusted R-squared value
+num_predictors <- length(tree_model$variable.importance)  # Number of predictors in the model
+num_obs <- nrow(raw_data_test)  # Number of observations
+
+adjusted_r_squared <- 1 - (1 - r_squared) * ((num_obs - 1) / (num_obs - num_predictors - 1))
+
+# Print the adjusted R-squared value
+print(paste("Adjusted R-squared value:", round(adjusted_r_squared, 4)))
+
+
+```
+
+**Mean Absolute Error (MAE):**
+
+**The Tree Model has a higher MAE (27362) compared to the Linear Model (22254).**. 
+**A lower MAE indicates better model performance, so the Linear Model performs better in terms of MAE.**. 
+
+**The Linear Model outperforms the Tree Model in terms of Mean Absolute Error (MAE).**. 
+**The Linear Model has a relatively high R-squared value, indicating a good fit to the data.**. 
+**Consider the specific requirements of your task and the interpretability of each model when choosing the best model for your scenario**. 
+
+
+  **Classification Model**
+```{r}
+library(dplyr)
+library(ROCR)
+# Loading House_Prices csv data
+House_Prices <- read.csv("data/House_Prices.csv", header = TRUE, sep = ",", stringsAsFactors = TRUE)
+
+# Creating a binary variable 'ConvertedOverallQual' based on condition
+House_Prices$ConvertedOverallQual <- ifelse(House_Prices$OverallQual < 7, 0,
+                                            ifelse(House_Prices$OverallQual >= 7, 1, NA))
+
+# Converting 'ConvertedOverallQual' to a factor
+House_Prices$ConvertedOverallQual <- as.factor(House_Prices$ConvertedOverallQual)
+
+# Removing rows with NA in the response variable
+House_Prices <- House_Prices[!is.na(House_Prices$ConvertedOverallQual), ]
+House_Prices <- House_Prices %>% dplyr::select(-OverallQual)
+# Building logistic regression model
+class_model <- glm(ConvertedOverallQual ~. , data = House_Prices, family = "binomial")
+summary(class_model)
+
+```
+
+
+```{r}
+library(readxl)
+BA_Predict <- read_excel("data/Predict.xlsx")
+# Creating a binary variable 'ConvertedOverallQual' based on condition
+BA_Predict$ConvertedOverallQual <- ifelse(BA_Predict$OverallQual < 7, 0,
+                                            ifelse(BA_Predict$OverallQual >= 7, 1, NA))
+
+# Converting 'ConvertedOverallQual' to a factor
+BA_Predict$ConvertedOverallQual <- as.factor(BA_Predict$ConvertedOverallQual)
+
+# Removing rows with NA in the response variable
+BA_Predict <- BA_Predict[!is.na(BA_Predict$ConvertedOverallQual), ]
+BA_Predict <- BA_Predict %>% dplyr::select(-OverallQual)
+
+```
+
+
+```{r}
+library(caret)
+predict_reg=predict(class_model,newdata=BA_Predict, type = "response")
+predict_reg=ifelse(predict_reg > 0.5,1,0)
+
+predict_reg = factor(predict_reg, levels = levels(House_Prices$ConvertedOverallQual))
+predict_reg
+levels(BA_Predict$ConvertedOverallQual)
+levels(predict_reg)
+str(predict_reg)
+
+table(predict_reg)
+table(predict_reg,BA_Predict$ConvertedOverallQual)
+
+X = confusionMatrix(BA_Predict$ConvertedOverallQual,predict_reg)
+X
+```
+
+**True Positive (TP): 47 (Actual class: 0, Predicted class: 0)**. 
+**False Positive (FP): 8 (Actual class: 0, Predicted class: 1)**. 
+**False Negative (FN): 7 (Actual class: 1, Predicted class: 0)**. 
+**True Negative (TN): 28 (Actual class: 1, Predicted class: 1)**. 
+
+
+```{r}
+accuracy <- X$overall["Accuracy"]
+
+precision <- X$byClass["Pos Pred Value"]
+
+accuracy
+precision
+```
+**Accuracy: 83.33% Accuracy is the proportion of correctly classified instances out of the total number of instances. In this case, the model has an overall accuracy of 83.33%, meaning it correctly predicted the class for approximately 83.33% of the observations.**. 
+
+**Positive Predictive Value (Precision): 85.45% Precision, also known as the Positive Predictive Value, measures the proportion of true positive predictions among all positive predictions made by the model. In this case, the positive predictive value is 85.45%. This indicates that when the model predicts the positive class, it is correct about 85.45% of the time.**. 
+
+
+**ROC Curve for the Metrics**
+```{r}
+predict_reg=predict(class_model,newdata=BA_Predict, type = "response")
+predict_reg=ifelse(predict_reg > 0.5,1,0)
+pred <- prediction(predict_reg, BA_Predict$ConvertedOverallQual)
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+plot(roc.perf, main = "ROC Curve", col = "blue")
+abline(a = 0, b = 1, col = "red")
+
+
+```
+
+
+**ROC curve visually represents the trade-off between true positive rate and false positive rate at different probability thresholds. The reference line (diagonal line) represents a random classifier, and the goal is for the ROC curve to be as far away from this line as possible (toward the upper-left corner).**. 
+**ROC curves for accuracy, sensitivity, and precision, respectively**. 
+
+```{r}
+auc.perf = performance(pred, measure = "auc")
+auc.perf@y.values
+```
+```{r}
+acc.perf = performance(pred, measure = "acc")
+plot(acc.perf)
+```
+
+```{r}
+rec.perf = performance(pred, measure = "rec")
+plot(rec.perf)
+```
+
+```{r}
+prec.perf = performance(pred, measure = "prec")
+plot(prec.perf)
+```
+
+
+**Subsequent blocks focus on other important metrics such as accuracy, recall (sensitivity), and precision. These metrics provide insights into different aspects of the model's performance. These graphs curves can help us choose an appropriate decision threshold for your classification model**
+
